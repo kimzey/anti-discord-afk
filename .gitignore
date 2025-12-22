@@ -1,0 +1,21 @@
+# Virtual Environments
+venv/
+myenv/
+.venv/
+env/
+
+# Python logs
+*.log
+anti-afk.log
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# macOS system files
+.DS_Store
+
+# IDEs/Editors
+.vscode/
+.idea/
