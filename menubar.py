@@ -18,9 +18,15 @@ LOG_FILE = os.path.expanduser("~/Library/Logs/anti-afk.log")
 PLIST = os.path.expanduser("~/Library/LaunchAgents/%s.plist" % LABEL)
 
 IDLE_CHOICES = [3, 5, 10, 15]   # ตัวเลือกในเมนู (นาที)
-CHECK_INTERVAL = 5              # เช็คทุกกี่วินาที
-ICON_ACTIVE = "🐭"
-ICON_PAUSED = "😴"
+CHECK_INTERVAL = 5              # เช็คสถานะ idle ทุกกี่วินาที
+FRAME_INTERVAL = 0.25           # เปลี่ยนเฟรมอนิเมชันทุกกี่วินาที
+
+# ใช้อีโมจิที่ความกว้างเท่ากันทุกเฟรม ไม่งั้นไอคอนบน menu bar จะกระตุกซ้าย-ขวา
+ICON_IDLE = "🐭"                                    # ตอนปิดอนิเมชัน
+ICON_PAUSED = "😴"                                  # ตอน pause
+SPIN_FRAMES = "🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛"          # หมุนตอนกำลังเฝ้าดู
+BURST_FRAMES = "🐭💨"                               # เด้งตอนเพิ่งขยับเมาส์
+BURST_TICKS = 8                                     # เด้งนานกี่เฟรม (8 x 0.25 = 2 วิ)
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 logging.basicConfig(
@@ -32,7 +38,7 @@ logging.basicConfig(
 
 
 def load_config():
-    cfg = {"minutes": 10, "paused": False}
+    cfg = {"minutes": 10, "paused": False, "animate": True}
     try:
         with open(CONFIG_FILE) as f:
             cfg.update(json.load(f))
@@ -58,9 +64,11 @@ def launch_target():
 
 class AntiAFKApp(rumps.App):
     def __init__(self):
-        super().__init__(APP_NAME, title=ICON_ACTIVE, quit_button="Quit")
+        super().__init__(APP_NAME, title=ICON_IDLE, quit_button="Quit")
         self.cfg = load_config()
         self.last_jiggle = None
+        self.frame = 0        # เฟรมปัจจุบันของอนิเมชันหมุน
+        self.burst_left = 0   # เหลืออีกกี่เฟรมของอนิเมชันตอน jiggle
 
         # ระวัง: rumps ใช้ title เป็น key ของเมนู -> ห้ามตั้งชื่อเริ่มต้นซ้ำกัน ไม่งั้นทับกันหาย
         self.status_item = rumps.MenuItem("Status")
@@ -69,6 +77,7 @@ class AntiAFKApp(rumps.App):
         self.idle_menu = rumps.MenuItem("Idle time")
         for minutes in IDLE_CHOICES:
             self.idle_menu.add(rumps.MenuItem("%d min" % minutes, callback=self.set_idle))
+        self.animate_item = rumps.MenuItem("Animate icon", callback=self.toggle_animate)
         self.login_item = rumps.MenuItem("Start at login", callback=self.toggle_login)
 
         self.menu = [
@@ -77,6 +86,7 @@ class AntiAFKApp(rumps.App):
             None,
             self.pause_item,
             self.idle_menu,
+            self.animate_item,
             rumps.MenuItem("Open log", callback=self.open_log),
             None,
             self.login_item,
@@ -85,11 +95,11 @@ class AntiAFKApp(rumps.App):
         self.refresh()
         logging.info("Menu bar app started (idle %d mins)", self.cfg["minutes"])
         rumps.Timer(self.tick, CHECK_INTERVAL).start()
+        rumps.Timer(self.draw_icon, FRAME_INTERVAL).start()
 
     # --- วาดเมนูใหม่ให้ตรงกับ state ปัจจุบัน ---
     def refresh(self):
         paused = self.cfg["paused"]
-        self.title = ICON_PAUSED if paused else ICON_ACTIVE
         self.status_item.title = (
             "⏸ Paused" if paused else "● Running (idle %d min)" % self.cfg["minutes"]
         )
@@ -97,7 +107,21 @@ class AntiAFKApp(rumps.App):
         self.pause_item.title = "Resume" if paused else "Pause"
         for item in self.idle_menu.values():
             item.state = int(item.title == "%d min" % self.cfg["minutes"])
+        self.animate_item.state = int(self.cfg["animate"])
         self.login_item.state = int(os.path.exists(PLIST))
+
+    # --- วาดไอคอนบน menu bar (ยิงทุก FRAME_INTERVAL วินาที) ---
+    def draw_icon(self, _timer=None):
+        if self.cfg["paused"]:
+            self.title = ICON_PAUSED
+        elif self.burst_left > 0:          # เพิ่งขยับเมาส์ไป -> เด้งให้เห็น
+            self.burst_left -= 1
+            self.title = BURST_FRAMES[self.burst_left % len(BURST_FRAMES)]
+        elif not self.cfg["animate"]:
+            self.title = ICON_IDLE
+        else:                              # กำลังเฝ้าดูอยู่ -> หมุนไปเรื่อย ๆ
+            self.frame = (self.frame + 1) % len(SPIN_FRAMES)
+            self.title = SPIN_FRAMES[self.frame]
 
     # --- หัวใจ: เช็คทุก CHECK_INTERVAL วินาที ---
     def tick(self, _timer):
@@ -105,6 +129,7 @@ class AntiAFKApp(rumps.App):
             return
         if seconds_since_last_input() >= self.cfg["minutes"] * 60:
             jiggle()
+            self.burst_left = BURST_TICKS
             self.last_jiggle = datetime.now().strftime("%H:%M:%S")
             logging.info("Activity Detected: Mouse Jiggled (Preventing AFK)")
             self.refresh()
@@ -115,12 +140,19 @@ class AntiAFKApp(rumps.App):
         save_config(self.cfg)
         logging.info("Paused" if self.cfg["paused"] else "Resumed")
         self.refresh()
+        self.draw_icon()
 
     def set_idle(self, sender):
         self.cfg["minutes"] = int(sender.title.split()[0])
         save_config(self.cfg)
         logging.info("Idle threshold set to %d mins", self.cfg["minutes"])
         self.refresh()
+
+    def toggle_animate(self, _sender):
+        self.cfg["animate"] = not self.cfg["animate"]
+        save_config(self.cfg)
+        self.refresh()
+        self.draw_icon()
 
     def open_log(self, _sender):
         open(LOG_FILE, "a").close()
