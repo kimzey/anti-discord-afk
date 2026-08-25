@@ -1,116 +1,113 @@
-# Discord Anti-AFK Script (macOS) 🐭
+# Discord Jiggler 🐭
 
-สคริปต์ Python สำหรับขยับเมาส์อัตโนมัติ (Mouse Jiggler) เพื่อป้องกันสถานะ "Away" (AFK) บน Discord หรือแอปพลิเคชันอื่นๆ ทำงานเบื้องหลังอย่างเงียบๆ และสามารถตั้งค่าให้เริ่มทำงานทันทีที่เปิดเครื่องได้
+แอป macOS กันสถานะ **"Away" (AFK)** บน Discord — อยู่บน menu bar เงียบ ๆ ขยับเมาส์ให้อัตโนมัติเมื่อคุณไม่ได้แตะเครื่องนานเกินกำหนด
 
 ## ✨ คุณสมบัติ
-- **ทำงานเบื้องหลัง:** ไม่รบกวนการใช้งานทั่วไป
-- **Smart Idle Check:** ตรวจสอบการใช้งานเมาส์จริง โปรแกรมจะขยับเมาส์ให้เฉพาะเมื่อคุณ **ไม่ได้ขยับเมาส์เอง** ตามเวลาที่กำหนดเท่านั้น (ไม่กวนการทำงานปกติ)
-- **ประหยัดทรัพยากร:** ใช้ทรัพยากรเครื่องน้อยมาก
-- **Auto-start:** รองรับการทำงานอัตโนมัติเมื่อเปิดเครื่อง (macOS)
+- **เห็นสถานะตลอด:** ไอคอน 🐭 บน menu bar (เป็น 😴 ตอน pause) กดดูได้ว่าขยับล่าสุดเมื่อไหร่
+- **Smart Idle Check:** อ่าน **system idle time จริง** ของ macOS ซึ่งนับทั้งเมาส์และคีย์บอร์ด — นั่งพิมพ์งานอยู่มันจะไม่มากวน ต่างจาก jiggler ทั่วไปที่ดูแค่ตำแหน่งเมาส์
+- **ตั้งเวลาได้จากเมนู:** 3 / 5 / 10 / 15 นาที
+- **Start at login:** ติ๊กในเมนูได้เลย
+- **เบามาก:** ไม่มีหน้าต่าง ไม่กิน Dock ไม่โผล่ Cmd-Tab
 
 ---
 
-## 📋 สิ่งที่ต้องเตรียม
-1. เครื่องคอมพิวเตอร์ระบบปฏิบัติการ **macOS**
-2. **Python 3** (ติดตั้งผ่าน Homebrew หรือมาพร้อมเครื่อง)
-3. โฟลเดอร์สำหรับเก็บไฟล์โปรเจกต์
+## 🚀 ติดตั้ง
+
+เปิด **`DiscordJiggler.dmg`** → ลาก **DiscordJiggler** ลงโฟลเดอร์ **Applications** → เปิดจาก Launchpad
+
+จบ ไม่ต้องแตะ Terminal เลย
+
+> **ครั้งแรกถ้า macOS ขึ้นว่า "ไม่สามารถเปิดได้ เพราะไม่ทราบผู้พัฒนา"**
+> คลิกขวาที่แอป → **Open** → กด **Open** ยืนยัน (แค่ครั้งเดียว)
+> เกิดเพราะแอปเซ็นแบบ ad-hoc ไม่ได้ผ่าน Apple notarization — ปกติสำหรับแอปที่ build ใช้เอง
+
+### หน้าตาเมนู
+```
+🐭
+├─ ● Running (idle 10 min)
+├─ Last jiggle: 13:15:28
+├─ ──────────────
+├─ Pause
+├─ Idle time  ▸  3 / 5 / 10 / 15 min
+├─ Open log
+├─ ──────────────
+├─ Start at login
+└─ Quit
+```
+
+ค่าที่ตั้งไว้เก็บที่ `~/Library/Application Support/AntiAFK/config.json`
+Log อยู่ที่ `~/Library/Logs/anti-afk.log`
 
 ---
 
-## 🛠 วิธีการติดตั้งและใช้งาน (Installation)
-
-แนะนำให้ติดตั้งผ่าน **Virtual Environment (venv)** เพื่อความสะอาดและป้องกันปัญหา Library ตีกัน
-
-### 1. ติดตั้ง
-เปิด **Terminal** และรันคำสั่งทีละบรรทัด:
+## 🔨 Build .dmg เอง
 
 ```bash
-# 1. เข้าไปที่โฟลเดอร์โปรเจกต์ (แก้ path ตามที่คุณเก็บไฟล์)
-cd ~/Desktop/project/anti-afk
-
-# 2. สร้าง Virtual Environment ชื่อ 'venv'
-python3 -m venv venv
-
-# 3. ติดตั้ง Library ที่จำเป็น (pyautogui)
-./venv/bin/pip install pyautogui
+./install.sh        # เตรียม venv + dependencies
+./build-dmg.sh      # ได้ DiscordJiggler.dmg
 ```
 
-### 2. ทดลองรัน (Manual Run)
-```bash
-./venv/bin/python anti-afk.py
-```
-*หากต้องการหยุดการทำงาน ให้กด `Ctrl + C`*
-
-### 3. การตั้งค่าเวลา (Configuration)
-หากต้องการเปลี่ยนระยะเวลาที่ต้องรอให้เมาส์นิ่งก่อนเริ่มขยับ ให้เปิดไฟล์ `anti-afk.py` และแก้ไขตัวเลขในบรรทัด:
-```python
-MINUTES = 10  # โปรแกรมจะรอให้เมาส์นิ่งครบ 10 นาทีก่อนจึงจะเริ่มขยับ
-```
-
-### 4. การกลับมาใช้งานครั้งถัดไป (Re-entry)
-เมื่อคุณปิด Terminal ไปแล้วและต้องการกลับมารันสคริปต์ใหม่ ให้ทำดังนี้:
-```bash
-# 1. เข้าไปที่โฟลเดอร์โปรเจกต์
-cd ~/Desktop/project/anti-afk
-
-# 2. เปิดใช้งาน Environment (สังเกตจะมีวงเล็บ (venv) นำหน้า)
-source venv/bin/activate
-
-# 3. รันสคริปต์
-python anti-afk.py
-```
-*หมายเหตุ: หากต้องการออกจาก Environment ให้พิมพ์คำสั่ง `deactivate`*
+ใช้ py2app ห่อ Python runtime ไว้ในแอปทั้งก้อน — เครื่องปลายทางไม่ต้องมี Python
 
 ---
 
-## ⚙️ ตั้งค่าให้รันตอนเปิดเครื่อง (Auto-start)
+## 💻 ทางเลือก: รันแบบ command line
 
-เราจะใช้ **Automator** ของ macOS เพื่อสร้างแอปพลิเคชันสำหรับรันสคริปต์นี้
+ไม่อยากได้ไอคอนบน menu bar ก็รันเป็น background service ได้:
 
-1. เปิดโปรแกรม **Automator** → เลือก **Application**
-2. ค้นหาคำสั่ง **"Run Shell Script"** แล้วลากมาไว้ที่หน้าต่างด้านขวา
-3. เปลี่ยนตัวเลือก **Pass input** เป็น **"to stdin"**
-4. คัดลอกโค้ดด้านล่างไปใส่ (🔴 **อย่าลืมแก้ `YOUR_USER` เป็นชื่อ User ของคุณ**):
-   ```bash
-   # เรียกใช้ Python จากใน venv โดยตรง
-   /Users/YOUR_USER/Desktop/project/anti-afk/venv/bin/python /Users/YOUR_USER/Desktop/project/anti-afk/anti-afk.py
-   ```
-5. กด `Cmd + S` บันทึกชื่อแอปว่า **"DiscordJiggler"** ไว้ในโฟลเดอร์ `Applications`
-
----
-
-## 🔐 การตั้งค่าสิทธิ์ (Permissions)
-
-เพื่อให้สคริปต์สามารถควบคุมเมาส์และรันตอนเปิดเครื่องได้:
-
-1. **Login Items:**
-   - ไปที่ `System Settings` → `General` → `Login Items`
-   - กดปุ่ม `+` แล้วเลือกแอป **DiscordJiggler** ที่เราสร้างไว้
-
-2. **Accessibility (สำคัญ):**
-   - ไปที่ `System Settings` → `Privacy & Security` → `Accessibility`
-   - กดเปิดสวิตช์ให้ **DiscordJiggler** (เพื่อให้สคริปต์ขยับเมาส์ได้)
-
----
-
-## 🔍 การจัดการและตรวจสอบ (Management)
-
-เนื่องจากแอปทำงานเบื้องหลัง (Background Process) จะไม่มีหน้าต่างแสดง
-
-**เช็คสถานะการทำงาน:**
 ```bash
-ps -ef | grep anti-afk.py
+./install.sh 10     # ติดตั้ง + ตั้งให้รันตอน login (10 = จำนวนนาที)
+./uninstall.sh      # ถอดออก
 ```
 
-**สั่งหยุดการทำงาน (Kill Process):**
+หรือรันสด ๆ ดูเฉย ๆ:
 ```bash
-pkill -f anti-afk.py
+./venv/bin/python3 anti-afk.py              # Ctrl+C เพื่อหยุด
+ANTI_AFK_MINUTES=3 ./venv/bin/python3 anti-afk.py
 ```
+
+จัดการ service:
+```bash
+tail -f ~/Library/Logs/anti-afk.log            # ดู log สด
+launchctl list | grep anti-afk                 # เช็คว่ารันอยู่มั้ย (มี PID = รันอยู่)
+launchctl kickstart -k gui/$UID/com.pan.anti-afk   # restart
+```
+
+> ⚠️ **อย่าใช้พร้อมกับ menu bar app** — จะมีสองตัวขยับเมาส์ชนกัน เลือกอย่างใดอย่างหนึ่ง
 
 ---
 
-## 🗑 การถอนการติดตั้ง (Uninstallation)
-1. สั่งหยุดโปรแกรม: `pkill -f anti-afk.py`
-2. ลบออกจาก Login Items ใน System Settings
-3. ลบไฟล์แอป **DiscordJiggler** ใน Applications
-4. ลบโฟลเดอร์โปรเจกต์ทิ้งได้เลย
+## 📁 ไฟล์ในโปรเจกต์
+
+| ไฟล์ | หน้าที่ |
+|---|---|
+| `jiggler.py` | แกนหลัก — อ่าน idle time + ขยับเมาส์ผ่าน Quartz |
+| `menubar.py` | menu bar app (rumps) |
+| `anti-afk.py` | เวอร์ชัน command line |
+| `install.sh` / `uninstall.sh` | ติดตั้ง/ถอดแบบ command line |
+| `build-dmg.sh` / `setup.py` | build `.app` → `.dmg` |
+
+---
+
+## 🩺 Troubleshooting
+
+**เปิดแอปแล้วไม่เห็นอะไรเลย** — ดูที่ menu bar มุมขวาบน (ข้าง ๆ นาฬิกา) ไม่มีหน้าต่างและไม่มีไอคอนใน Dock ถ้า menu bar เต็มจนไอคอนถูกซ่อน ลองปิดแอปอื่นหรือใช้ Bartender
+
+**ไม่เห็นมันขยับเมาส์** — ปกติครับ ตั้งไว้ 10 นาที ต้องปล่อยเครื่องนิ่งครบ 10 นาทีก่อน อยากลองเร็ว ๆ ให้ตั้ง `Idle time → 3 min` แล้วเปิด `Open log` ดู
+
+**Discord ยังขึ้น Away** — ลดเวลาลงเหลือ 3 นาที (Discord ตัดที่ราว ๆ 10 นาที)
+
+**เมาส์ไม่ขยับจริง ๆ** — เปิดสิทธิ์ให้แอป: `System Settings` → `Privacy & Security` → `Accessibility` → เพิ่ม **DiscordJiggler**
+
+**`build-dmg.sh` หา Python ไม่เจอ / venv สร้างไม่ได้** — brew python บางเวอร์ชันพัง (`ensurepip` ล้มที่ `pyexpat`) `install.sh` จะข้ามไปหาตัวที่ใช้ได้ให้เอง ถ้าไม่เหลือเลย: `brew reinstall python@3.13`
+
+---
+
+## 🗑 ถอนการติดตั้ง
+
+ลาก **DiscordJiggler** จาก Applications ลงถังขยะ แล้วเก็บกวาดที่เหลือ:
+```bash
+launchctl bootout gui/$UID/com.pan.anti-afk.menubar 2>/dev/null
+rm -f ~/Library/LaunchAgents/com.pan.anti-afk.menubar.plist
+rm -rf ~/Library/Application\ Support/AntiAFK ~/Library/Logs/anti-afk*.log
+```

@@ -1,0 +1,3 @@
+# ใช้ตอน build .dmg เท่านั้น (ตัวโปรแกรมไม่ต้องใช้)
+-r requirements.txt
+py2app>=0.28.8
