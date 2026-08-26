@@ -133,9 +133,27 @@ launchctl kickstart -k gui/$UID/com.pan.anti-afk   # restart
 
 **ไม่เห็นมันขยับเมาส์** — ปกติครับ ตั้งไว้ 10 นาที ต้องปล่อยเครื่องนิ่งครบ 10 นาทีก่อน อยากลองเร็ว ๆ ให้ตั้ง `Idle time → 3 min` แล้วเปิด `Open log` ดู
 
-**Discord ยังขึ้น Away** — ลดเวลาลงเหลือ 3 นาที (Discord ตัดที่ราว ๆ 10 นาที)
+**⚠️ ขึ้นบน menu bar / Discord ยังขึ้น Away ทั้งที่แอปรันอยู่** — แปลว่า macOS กลืน event ทิ้ง
+เพราะแอปยังไม่ได้สิทธิ์ Accessibility `CGEventPost` จะเงียบสนิท ไม่ error ไม่ throw
+แอปเลยดู "ทำงานอยู่" ทั้งที่ตัวนับ idle ของระบบไม่เคยรีเซ็ต วิธีแก้:
 
-**เมาส์ไม่ขยับจริง ๆ** — เปิดสิทธิ์ให้แอป: `System Settings` → `Privacy & Security` → `Accessibility` → เพิ่ม **DiscordJiggler**
+1. `System Settings` → `Privacy & Security` → `Accessibility` → กด **+** → เลือก
+   `/Applications/DiscordJiggler.app` → เปิดสวิตช์
+2. ถ้าเปิดสวิตช์แล้วยังไม่หาย แปลว่ามี record "ปฏิเสธ" ค้างอยู่ (เคยกด Don't Allow
+   ตอนที่มันเด้งถาม) macOS จะไม่ถามซ้ำอีก ต้องล้างทิ้งก่อน:
+   ```bash
+   tccutil reset PostEvent com.pan.anti-afk
+   tccutil reset Accessibility com.pan.anti-afk
+   ```
+   แล้วเปิดแอปใหม่ + เพิ่มเข้าลิสต์ตามข้อ 1
+3. เช็คว่าได้สิทธิ์แล้วจริง: เปิด `Open log` แล้วดูบรรทัด `Menu bar app started`
+   ต้องเป็น `accessibility=granted`
+
+> **สร้างแอปใหม่ทุกครั้ง = ต้องเปิดสิทธิ์ใหม่** — แอปเซ็นแบบ ad-hoc ทำให้ลายเซ็น
+> (cdhash) เปลี่ยนทุกครั้งที่ `build-dmg.sh` รัน macOS จะมองว่าเป็นคนละแอป
+> สิทธิ์เดิมเลยใช้ไม่ได้ ทั้งที่สวิตช์ในลิสต์ยังติ๊กอยู่ — ลบออกจากลิสต์แล้วเพิ่มใหม่
+
+**Discord ยังขึ้น Away (แต่ไอคอนปกติ ไม่มี ⚠️)** — ลดเวลาลงเหลือ 3 นาที (Discord ตัดที่ราว ๆ 10 นาที)
 
 **`build-dmg.sh` หา Python ไม่เจอ / venv สร้างไม่ได้** — brew python บางเวอร์ชันพัง (`ensurepip` ล้มที่ `pyexpat`) `install.sh` จะข้ามไปหาตัวที่ใช้ได้ให้เอง ถ้าไม่เหลือเลย: `brew reinstall python@3.13`
 
